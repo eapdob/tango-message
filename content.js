@@ -48,7 +48,7 @@ if (!window.tangoBotInjected) {
 
     async function handleChatHistoryPage() {
         console.log('handleChatHistoryPage');
-        await wait(750);
+        await wait(3500);
         const links = await waitForProfileLinks(1, 20, 100);
 
         const mainChatLinks = links
@@ -62,7 +62,7 @@ if (!window.tangoBotInjected) {
         console.log('allLinks', allLinks);
 
         await chrome.storage.local.set({historyLinks: allLinks});
-        await wait(750);
+        await wait(3500);
 
         window.location.href = "https://www.tango.me/search";
     }
@@ -70,7 +70,7 @@ if (!window.tangoBotInjected) {
     async function searchAndProcess(query, max = 1000) {
         console.log('profilesQueue', profilesQueue);
         if (!profilesQueue.length) {
-            const input = await waitForSelector('[data-testid="search-input"]', 30, 500);
+            const input = await waitForSelector('[data-testid="search-input"]', 30, 1500);
             if (!input) return;
 
             await typeLikeHuman(input, query);

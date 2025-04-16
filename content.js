@@ -38,7 +38,7 @@ if (!window.tangoBotInjected) {
         for (let i = 0; i < retries; i++) {
             const links = [...document.querySelectorAll('a[href^="/profile/"], [data-testid="conversations-list"] a[href^="/"]:not([href^="/chat/"]')];
             console.log('links', links);
-            if (links.length >= minCount && (i+1) == retries) {
+            if (links.length >= minCount) {
                 return links;
             }
             await wait(delay);
@@ -49,7 +49,7 @@ if (!window.tangoBotInjected) {
     async function handleChatHistoryPage() {
         console.log('handleChatHistoryPage');
         await wait(3500);
-        const links = await waitForProfileLinks(1, 20, 100);
+        const links = await waitForProfileLinks(1, 100, 500);
 
         const mainChatLinks = links
             .map(link => link.getAttribute("href"))
@@ -70,7 +70,7 @@ if (!window.tangoBotInjected) {
     async function searchAndProcess(query, max = 1000) {
         console.log('profilesQueue', profilesQueue);
         if (!profilesQueue.length) {
-            const input = await waitForSelector('[data-testid="search-input"]', 30, 1500);
+            const input = await waitForSelector('[data-testid="search-input"]', 100, 500);
             if (!input) return;
 
             await typeLikeHuman(input, query);
@@ -126,7 +126,7 @@ if (!window.tangoBotInjected) {
         const href = window.location.pathname;
         console.log('href', href);
 
-        const chatBtn = await waitForSelector('a[data-testid="chat"]', 20, 500);
+        const chatBtn = await waitForSelector('a[data-testid="chat"]', 100, 500);
         if (!chatBtn) {
             await chrome.storage.local.set({isSearching: true});
             return (window.location.href = "https://www.tango.me/search");
@@ -135,7 +135,7 @@ if (!window.tangoBotInjected) {
         chatBtn.click();
         await wait(5000);
 
-        const textarea = await waitForSelector('[data-testid="textarea"]', 10, 500);
+        const textarea = await waitForSelector('[data-testid="textarea"]', 50, 500);
         if (!textarea) {
             await chrome.storage.local.set({isSearching: true});
             return (window.location.href = "https://www.tango.me/search");

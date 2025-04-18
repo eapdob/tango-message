@@ -1,17 +1,10 @@
 document.addEventListener("DOMContentLoaded", async () => {
     const startBtn = document.getElementById("startBtn");
     const stopBtn = document.getElementById("stopBtn");
-    const queriesInput = document.getElementById("searchQueries");
     const messagesInput = document.getElementById("messages");
 
-    const {searchQueries = [], messages = []} = await chrome.storage.local.get(["searchQueries", "messages"]);
-    queriesInput.value = searchQueries.join("\n");
+    const {messages = []} = await chrome.storage.local.get(["messages"]);
     messagesInput.value = messages.join("\n");
-
-    queriesInput.addEventListener("input", () => {
-        const newQueries = queriesInput.value.split("\n").map(q => q.trim()).filter(Boolean);
-        chrome.storage.local.set({searchQueries: newQueries});
-    });
 
     messagesInput.addEventListener("input", () => {
         const newMessages = messagesInput.value.split("\n").map(m => m.trim()).filter(Boolean);
@@ -19,10 +12,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     startBtn.addEventListener("click", async () => {
-        const searchQueries = queriesInput.value.split("\n").map(q => q.trim()).filter(Boolean);
         const messages = messagesInput.value.split("\n").map(m => m.trim()).filter(Boolean);
 
-        await chrome.storage.local.set({searchQueries, messages});
+        await chrome.storage.local.set({messages});
 
         chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
             const tab = tabs[0];

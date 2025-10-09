@@ -37,7 +37,6 @@ if (!window.tangoBotInjected) {
         console.log('waitForProfileLinks');
         for (let i = 0; i < retries; i++) {
             const links = [...document.querySelectorAll('.simplebar-content > div a[href^="/chat/"]')];
-            console.log('links', links);
             if (links.length >= minCount) {
                 return links;
             }
@@ -50,7 +49,6 @@ if (!window.tangoBotInjected) {
         console.log('waitForStreamsLinks');
         for (let i = 0; i < retries; i++) {
             const links = [...document.querySelectorAll('a[href^="/stream/"]')];
-            console.log('links', links);
             if (links.length >= minCount) {
                 return links;
             }
@@ -63,7 +61,6 @@ if (!window.tangoBotInjected) {
         console.log('waitForGiftersLinks');
         for (let i = 0; i < retries; i++) {
             const links = [...document.querySelectorAll('[data-testid="viewers"] .simplebar-content > [data-testid]')];
-            console.log('links', links);
             if (links.length >= minCount) {
                 return links;
             }
@@ -72,14 +69,31 @@ if (!window.tangoBotInjected) {
         return [];
     }
 
+    function collectChatHrefArray(limit = null) {
+        const hrefs = [...document.querySelectorAll('.simplebar-content > div a[href^="/chat/"]')]
+            .map(a => a.getAttribute('href'))
+            .filter(Boolean);
+        return limit ? hrefs.slice(0, limit) : hrefs;
+    }
+
     async function autoScrollToBottom(selector = '.simplebar-content-wrapper', times = 20, delay = 500) {
-        const el = document.querySelector(selector);
-        if (!el) return console.warn(`❌ Selector not found: ${selector}`);
-        let lastHeight = 0;
+        let el = document.querySelector(selector);
+
+        if (!el) {
+            el = document.querySelector('.simplebar-content')
+                || document.querySelector('[data-testid="inbox"] .simplebar-content-wrapper')
+                || document.querySelector('[data-testid="inbox"] .simplebar-content');
+        }
+
+        if (!el) {
+            console.warn(`❗ Scroll container not found by "${selector}", using document`);
+            el = document.scrollingElement || document.documentElement || document.body;
+        }
+
+        let lastHeight = -1;
         for (let i = 0; i < times; i++) {
             el.scrollTo(0, el.scrollHeight);
-            console.log(`🔄 Scroll ${i + 1}/${times}`);
-            await new Promise(resolve => setTimeout(resolve, delay));
+            await wait(delay);
             const newHeight = el.scrollHeight;
             if (newHeight === lastHeight) {
                 console.log("✅ No more new content loaded.");
@@ -93,7 +107,7 @@ if (!window.tangoBotInjected) {
     async function handleStreams() {
         console.log('handleStreams');
         console.log('streamsQueue', streamsQueue);
-        await randomDelay(500, 750);
+        await randomDelay(750, 1250);
         if (!streamsQueue.length) {
             const items = await waitForStreamsLinks(1, 20, 500);
             console.log('items found:', items.length);
@@ -105,7 +119,7 @@ if (!window.tangoBotInjected) {
                 return null;
             }).filter(Boolean);
             console.log('streamsQueue:', streamsQueue);
-            await randomDelay(500, 750);
+            await randomDelay(750, 1250);
             await chrome.storage.local.set({streamsQueue: streamsQueue});
         }
         while (streamsQueue.length) {
@@ -113,7 +127,7 @@ if (!window.tangoBotInjected) {
             await chrome.storage.local.set({streamsQueue: streamsQueue});
             console.log('href', href);
             console.log('streamsQueue:', streamsQueue);
-            await randomDelay(500, 750);
+            await randomDelay(750, 1250);
             if (!href) continue;
             await chrome.storage.local.set({currentStream: href});
             window.location.href = `https://www.tango.me${href}`;
@@ -121,7 +135,7 @@ if (!window.tangoBotInjected) {
         }
         console.log('streamsQueue:', streamsQueue);
         console.log('handleStreams end');
-        await randomDelay(500, 750);
+        await randomDelay(750, 1250);
         window.location.href = "https://www.tango.me";
     }
 
@@ -129,7 +143,7 @@ if (!window.tangoBotInjected) {
         console.log('handleStream');
         currentStream = window.location.href;
         await chrome.storage.local.set({currentStream: currentStream});
-        await randomDelay(500, 1000);
+        await randomDelay(750, 1250);
         if (!giftersSelectors.length) {
             const gifters = await waitForGiftersLinks(1, 20, 500);
             if (gifters.length > 0) {
@@ -137,20 +151,20 @@ if (!window.tangoBotInjected) {
             } else {
                 const topGiftersButton = await waitForSelector('[data-testid="stream-go-back"] + div > [data-testid^="top-gifters"]', 20, 500);
                 console.log('topGiftersButton', topGiftersButton);
-                await randomDelay(500, 750);
+                await randomDelay(750, 1250);
                 if (!topGiftersButton) {
                     console.log('topGiftersButton not found', topGiftersButton);
                     return window.location.href = "https://www.tango.me/live/popular";
                 } else {
                     console.log('topGiftersButton click');
                     topGiftersButton.click();
-                    await randomDelay(500, 750);
+                    await randomDelay(750, 1250);
                     const gifters = await waitForGiftersLinks(1, 20, 500);
                     if (gifters) {
                         giftersSelectors = gifters.map(el => el.getAttribute('data-testid'));
                     }
-                    console.log('giftersSelectors', giftersSelectors);
-                    await randomDelay(500, 750);
+                    console.log('giftersSelectors handleStream #1', giftersSelectors);
+                    await randomDelay(750, 1250);
                 }
             }
             await chrome.storage.local.set({ giftersSelectors: giftersSelectors });
@@ -159,14 +173,14 @@ if (!window.tangoBotInjected) {
         while (giftersSelectors.length) {
             const selector = giftersSelectors.shift();
             await chrome.storage.local.set({ giftersSelectors: giftersSelectors });
-            console.log('giftersSelectors', giftersSelectors);
+            console.log('giftersSelectors handleStream #2', giftersSelectors);
 
             let viewers = document.querySelectorAll('[data-testid="viewers"] .simplebar-content > [data-testid]');
             if (viewers.length === 0) {
                 const topGiftersButton = await waitForSelector('[data-testid="stream-go-back"] + div > [data-testid^="top-gifters"]', 20, 500);
                 if (topGiftersButton) {
                     topGiftersButton.click();
-                    await randomDelay(500, 750);
+                    await randomDelay(750, 1250);
                 } else if (!topGiftersButton) {
                     continue;
                 }
@@ -174,59 +188,87 @@ if (!window.tangoBotInjected) {
 
             const gifter = document.querySelector(`[data-testid="viewers"] .simplebar-content > [data-testid="${selector}"]`);
             console.log('gifter', gifter);
-            await randomDelay(500, 750);
+            await randomDelay(750, 1250);
             if (!gifter) continue;
             gifter.click();
+            console.log('gifter click');
 
-            await randomDelay(500, 750);
+            await randomDelay(750, 1250);
             const messageButton = document.querySelector('#modal-content a[href^="/chat/"]');
-            await randomDelay(500, 750);
+            await randomDelay(750, 1250);
             if (!messageButton || historyLinks.includes(messageButton?.getAttribute("href"))) continue;
             console.log('historyLinks', historyLinks);
             console.log('messageButton.getAttribute("href")', messageButton?.getAttribute("href"));
             console.log('historyLinks.includes(href)', historyLinks.includes(messageButton?.getAttribute("href")));
             messageButton.click();
-            await randomDelay(500, 750);
+            await randomDelay(750, 1250);
 
             const textarea = await waitForSelector('[data-testid="textarea"]', 20, 500);
-            if (!textarea) return currentStream;
-            await randomDelay(500, 750);
-            const msg = messages[Math.floor(Math.random() * messages.length)];
-            await typeLikeHuman(textarea, msg);
-            const send = document.querySelector('[data-testid="chat-send-message-button"]');
-            if (send) {
-                await randomDelay(500, 750);
-                send.click();
-                await handleChatHistoryPage();
+            console.log('textarea', textarea);
+            if (!textarea) {
+                console.log('return currentStream', currentStream);
+                window.location.href = currentStream;
                 return;
             }
+            await randomDelay(750, 1250);
+            const msg = messages[Math.floor(Math.random() * messages.length)];
+            console.log('msg', msg);
+            await typeLikeHuman(textarea, msg);
+            const send = document.querySelector('[data-testid="chat-send-message-button"]');
+            console.log('send', send);
+            if (!send) {
+                console.log('return currentStream', currentStream);
+                window.location.href = currentStream;
+                return;
+            }
+            await randomDelay(750, 1250);
+            send.click();
+            console.log('send click', send);
+            await handleChatHistoryPage();
         }
 
+        console.log('return https://www.tango.me/live/popular', currentStream);
         window.location.href = "https://www.tango.me/live/popular";
         await handleStreams();
     }
 
     async function handleChatHistoryPage() {
         console.log('handleChatHistoryPage');
-        await randomDelay(3000, 3500);
-        await autoScrollToBottom('.simplebar-content-wrapper', 20, 1000);
-        const links = await waitForProfileLinks(1, 20, 500);
-        const mainChatLinks = links
-            .map(link => link.getAttribute("href"))
-            .filter(Boolean);
-        const allLinks = Array.from(new Set(mainChatLinks));
-        console.log('allLinks', allLinks);
+        const { historyLinks: storedLinks = [], historyInitialized = false } =
+            await chrome.storage.local.get(["historyLinks", "historyInitialized"]);
+        let finalLinks;
+        if (!historyInitialized) {
+            await randomDelay(3000, 3500);
+            await autoScrollToBottom('.simplebar-content-wrapper', 20, 1000);
+            const allHrefs = collectChatHrefArray();
+            finalLinks = Array.from(new Set(allHrefs));
+            await chrome.storage.local.set({
+                historyLinks: finalLinks,
+                historyInitialized: true
+            });
+            console.log('history initialized with', finalLinks.length, 'links');
+        } else {
+            await randomDelay(3000, 3500);
+            const FRESH_LIMIT = 30;
+            const fresh = collectChatHrefArray(FRESH_LIMIT);
+            const set = new Set(fresh);
+            for (const href of storedLinks) {
+                if (!set.has(href)) set.add(href);
+            }
+            finalLinks = Array.from(set);
+            await chrome.storage.local.set({ historyLinks: finalLinks });
+            console.log('history updated incrementally, total', finalLinks.length);
+        }
         console.log('currentStream', currentStream);
-        await randomDelay(500, 750);
-        await chrome.storage.local.set({historyLinks: allLinks});
+        await randomDelay(750, 1250);
         if (currentStream) {
             console.log('go to currentStream', currentStream);
-            await randomDelay(500, 750);
+            await randomDelay(750, 1250);
             window.location.href = currentStream;
             return;
         } else {
             console.log('go to streams page');
-            await randomDelay(500, 750);
+            await randomDelay(750, 1250);
             window.location.href = "https://www.tango.me/live/popular";
             return;
         }

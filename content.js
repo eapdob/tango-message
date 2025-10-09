@@ -226,7 +226,6 @@ if (!window.tangoBotInjected) {
             console.log('send click', send);
             await handleChatHistoryPage();
         }
-
         console.log('return https://www.tango.me/live/popular', currentStream);
         window.location.href = "https://www.tango.me/live/popular";
         await handleStreams();

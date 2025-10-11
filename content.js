@@ -1,10 +1,11 @@
 if (!window.tangoBotInjected) {
     window.tangoBotInjected = true;
 
-    const HISTORY_LINKS_MAX_HISTORY = 1000;
-    const HISTORY_LINKS_THRESHOLD = 1500;
+    const HISTORY_LINKS_MAX_HISTORY = 200;
+    const HISTORY_LINKS_THRESHOLD = 250;
     const FRESH_LIMIT = 42;
     const DEBUG = true;
+    const GIFTERS_LIMIT = 5;
     let messages = [];
     let streamsQueue = [];
     let giftersChatLinks = [];
@@ -114,9 +115,9 @@ if (!window.tangoBotInjected) {
     async function handleStreams() {
         if (DEBUG) console.log('handleStreams start');
         if (DEBUG) console.log('handleStreams streamsQueue', streamsQueue);
-        await randomDelay(3000, 6000);
+        await randomDelay(1500, 3000);
 
-        if (!streamsQueue.length) {
+        if (!streamsQueue || streamsQueue.length === 0) {
             const streams = await waitForSelectors('a[href^="/stream/"]');
 
             if (DEBUG) console.log('handleStreams streams', streams)
@@ -154,7 +155,8 @@ if (!window.tangoBotInjected) {
 
         if (DEBUG) console.log('handleStreams end');
 
-        window.location.href = "https://www.tango.me";
+        //window.location.href = "https://www.tango.me";
+        window.location.href = "https://www.tango.me/live/popular";
     }
 
     async function handleStream() {
@@ -164,7 +166,7 @@ if (!window.tangoBotInjected) {
         currentStream = window.location.href;
         await chrome.storage.local.set({currentStream: currentStream});
 
-        if (!giftersChatLinks.length) {
+        if (!giftersChatLinks.length || giftersChatLinks.length === 0) {
             const topGiftersButton = await waitForSelector('[data-testid="stream-go-back"] + div > [data-testid^="top-gifters"]');
 
             if (DEBUG) console.log('handleStream topGiftersButton', topGiftersButton);
@@ -194,7 +196,10 @@ if (!window.tangoBotInjected) {
 
                 if (DEBUG) console.log('handleStream gifters', gifters);
 
+                let i = 0;
                 for (const gifter of gifters) {
+                    if (i > GIFTERS_LIMIT) continue;
+                    i++;
                     gifter.click();
 
                     await randomDelay(1000, 1500);
@@ -218,6 +223,13 @@ if (!window.tangoBotInjected) {
         if (giftersChatLinks.length) {
             let gifterChatLink = giftersChatLinks.shift();
             await chrome.storage.local.set({giftersChatLinks: giftersChatLinks});
+
+            if (!giftersChatLinks.length || giftersChatLinks.length === 0) {
+                currentStream = '';
+                await chrome.storage.local.set({currentStream: currentStream});
+                if (DEBUG) console.log('handleStream canceling currentStream', currentStream);
+            }
+
             if (historyLinks.includes(gifterChatLink)) {
                 if (DEBUG) console.log('handleStream skip to chat', gifterChatLink);
 
@@ -308,32 +320,12 @@ if (!window.tangoBotInjected) {
         await randomDelay(1500, 2000);
 
         if (giftersChatLinks.length) {
-            let gifterChatLink = giftersChatLinks.shift();
-            await chrome.storage.local.set({giftersChatLinks: giftersChatLinks});
-            if (historyLinks.includes(gifterChatLink)) {
-                if (currentStream) {
-                    if (DEBUG) console.log('handleChatPage to currentStream', currentStream);
-
-                    window.location.href = currentStream;
-
-                    return;
-                } else {
-                    if (DEBUG) console.log('handleChatPage to streams');
-
-                    window.location.href = "https://www.tango.me/live/popular";
-
-                    return;
-                }
-            }
-
-            if (DEBUG) console.log('handleChatPage to chat', gifterChatLink);
-
             if (currentStream) {
                 if (DEBUG) console.log('handleChatPage to currentStream', currentStream);
 
                 window.location.href = currentStream;
             } else {
-                if (DEBUG) console.log('handleStream to streams');
+                if (DEBUG) console.log('handleChatPage to streams');
 
                 window.location.href = "https://www.tango.me/live/popular";
             }
